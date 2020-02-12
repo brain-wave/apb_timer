@@ -16,6 +16,7 @@ module apb_timer
     parameter TIMER_CNT = 2 // how many timers should be instantiated
 )
 (
+    input  logic                      clk32_i, // low-speed clock
     input  logic                      HCLK,
     input  logic                      HRESETn,
     input  logic [APB_ADDR_WIDTH-1:0] PADDR,
@@ -26,13 +27,13 @@ module apb_timer
     output logic               [31:0] PRDATA,
     output logic                      PREADY,
     output logic                      PSLVERR,
-
-    output logic [(TIMER_CNT * 2) - 1:0] irq_o // overflow and cmp interrupt
+    
+    output logic [(TIMER_CNT*2)-1:0]  irq_o // overflow and cmp interrupt
 );
 
     logic [TIMER_CNT-1:0] psel_int, pready, pslverr;
-    logic [$clog2(TIMER_CNT) - 1:0] slave_address_int;
-    logic [TIMER_CNT-1:0] [31:0] prdata;
+    logic [$clog2(TIMER_CNT)-1:0] slave_address_int;
+    logic [TIMER_CNT-1:0][31:0] prdata;
 
     assign slave_address_int = PADDR[$clog2(TIMER_CNT)+ `REGS_MAX_ADR + 1:`REGS_MAX_ADR + 2];
 
@@ -68,6 +69,7 @@ module apb_timer
     begin : TIMER_GEN
       timer timer_i
       (
+          .clk32_i    ( clk32_i      ),
           .HCLK       ( HCLK          ),
           .HRESETn    ( HRESETn       ),
 

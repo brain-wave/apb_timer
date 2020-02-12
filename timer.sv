@@ -23,6 +23,7 @@ module timer
     parameter APB_ADDR_WIDTH = 12  //APB slaves are 4KB by default
 )
 (
+    input  logic                      clk32_i, // low-speed 32khz clock for counter
     input  logic                      HCLK,
     input  logic                      HRESETn,
     input  logic [APB_ADDR_WIDTH-1:0] PADDR,
@@ -33,7 +34,7 @@ module timer
     output logic               [31:0] PRDATA,
     output logic                      PREADY,
     output logic                      PSLVERR,
-
+    
     output logic                [1:0] irq_o // overflow and cmp interrupt
 );
 
@@ -49,6 +50,8 @@ module timer
     logic [31:0] cycle_counter_n, cycle_counter_q;
 
     logic [2:0] prescaler_int;
+    logic [2:0] r_ls_clk_sync;
+    assign s_rise_ls_clk = ~r_ls_clk_sync[2] & r_ls_clk_sync[1]; // edge detector
 
     //irq logic
     always_comb
@@ -56,11 +59,11 @@ module timer
         irq_o = 2'b0;
 
         // overlow irq
-        if (regs_q[`REG_TIMER] == 32'hffff_ffff)
+        if (regs_q[`REG_TIMER] == 32'hffff_ffff && s_rise_ls_clk)
             irq_o[0] = 1'b1;
 
         // compare match irq if compare reg ist set
-        if (regs_q[`REG_CMP] != 'b0 && regs_q[`REG_TIMER] == regs_q[`REG_CMP])
+        if (regs_q[`REG_CMP] != 'b0 && regs_q[`REG_TIMER] == regs_q[`REG_CMP] && s_rise_ls_clk)
             irq_o[1] = 1'b1;
 
     end
@@ -127,7 +130,18 @@ module timer
 
         end
     end
-    // synchronouse part
+    
+    // low-speed clock synchronizer
+    always_ff @(posedge HCLK, negedge HRESETn) 
+    begin
+        if(~HRESETn) begin
+            r_ls_clk_sync <= 'h0;
+        end else begin
+            r_ls_clk_sync <= {r_ls_clk_sync[1:0],clk32_i};
+        end
+    end
+    
+    // synchronous part
     always_ff @(posedge HCLK, negedge HRESETn)
     begin
         if(~HRESETn)
@@ -135,7 +149,7 @@ module timer
             regs_q          <= '{default: 32'b0};
             cycle_counter_q <= 32'b0;
         end
-        else
+        else if (s_rise_ls_clk || (PSEL && PENABLE && PWRITE)) 
         begin
             regs_q          <= regs_n;
             cycle_counter_q <= cycle_counter_n;
