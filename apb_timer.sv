@@ -17,6 +17,7 @@ module apb_timer
 )
 (
     input  logic                      clk32_i, // low-speed clock
+    input  logic                      clk32_en_i, 
     input  logic                      HCLK,
     input  logic                      HRESETn,
     input  logic [APB_ADDR_WIDTH-1:0] PADDR,
@@ -70,8 +71,9 @@ module apb_timer
       timer timer_i
       (
           .clk32_i    ( clk32_i      ),
-          .HCLK       ( HCLK          ),
-          .HRESETn    ( HRESETn       ),
+          .clk32_en_i ( clk32_en_i   ),
+          .HCLK       ( HCLK         ),
+          .HRESETn    ( HRESETn      ),
 
           .PADDR      ( PADDR        ),
           .PWDATA     ( PWDATA       ),

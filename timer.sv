@@ -24,6 +24,7 @@ module timer
 )
 (
     input  logic                      clk32_i, // low-speed 32khz clock for counter
+    input  logic                      clk32_en_i,
     input  logic                      HCLK,
     input  logic                      HRESETn,
     input  logic [APB_ADDR_WIDTH-1:0] PADDR,
@@ -51,7 +52,7 @@ module timer
 
     logic [2:0] prescaler_int;
     logic [2:0] r_ls_clk_sync;
-    assign s_rise_ls_clk = ~r_ls_clk_sync[2] & r_ls_clk_sync[1]; // edge detector
+    assign s_rise_ls_clk = ~clk32_en_i || (~r_ls_clk_sync[2] && r_ls_clk_sync[1]); // edge detector if clk32_en_i is true
 
     //irq logic
     always_comb
